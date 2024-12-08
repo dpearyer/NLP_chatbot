@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Inquiry Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        #chatContainer {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #chatBox {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+        
+        .welcome-message {
+            font-size: 24px;
+            color: #4CAF50;
+            margin-top: 40px;
+            text-align: center;
+
+        }
+
+
+        .chat-message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #e1e1e1;
+            max-width: 80%;
+        }
+
+        .chat-message.bot {
+            background-color: #d1f7d1;
+        }
+
+        .chat-message.user {
+            background-color: #b0d9ff;
+            margin-left: auto;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 80px);
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 60px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .bottom-note {
+            position: fixed; 
+            left: 50%;       
+            bottom: 10px;     
+            transform: translateX(-50%);
+            background-color: #f0f0f0;  
+            padding: 15px;
+            border-radius: 15px; 
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+            width: 80%; 
+            max-width: 400px;
+            text-align: center;
+            font-size: 14px;
+            color: #333; 
+        }
+
+        .bottom-note:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-message" id="welcomeMessage"></div>
+
+    <div id="chatContainer">
+        <div id="chatBox"></div>
+        <input type="text" id="userQuery" placeholder="Ask me anything..." />
+        <button onclick="sendUserMessage()">Send</button>
+    </div>
+
+    <div class="bottom-note">
+        *Note: To test this bot, please use phrases containing the words "order", "product", "refund", "price", or "bye". This can be customized or automated as needed
+    </div>
+    <script>
+        function displayWelcomeMessage() {
+            const welcomeMessage = "Welcome to the Customer Inquiry Chatbot! How can I assist you today?";
+            document.getElementById("welcomeMessage").innerText = welcomeMessage;
+        }
+
+        window.onload = displayWelcomeMessage;
+
+        function sendQuery(intent, queryText) {
+            fetch("http://localhost:5000/webhook", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    queryResult: {
+                        intent: {
+                            displayName: intent
+                        },
+                        queryText: queryText
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);  // Check the response data
+                processResponse(data.fulfillmentText);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Failed to fetch response.");
+            });
+        }
+
+        // Function to process and display the response from the backend
+        function processResponse(responseText) {
+            const chatBox = document.getElementById("chatBox");
+            const message = document.createElement("div");
+            message.classList.add("chat-message", "bot");
+            message.textContent = responseText;
+            chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
+        }
+
+        // Function to send user message and trigger query to the backend
+        function sendUserMessage() {
+            const userQuery = document.getElementById("userQuery").value.trim();
+            if (userQuery === "") return;
+
+            const chatBox = document.getElementById("chatBox");
+
+            // Display user's message in the chat box
+            const userMessage = document.createElement("div");
+            userMessage.classList.add("chat-message", "user");
+            userMessage.textContent = userQuery;
+            chatBox.appendChild(userMessage);
+            document.getElementById("userQuery").value = "";
+
+            // Check if the user's query matches any of the intents
+            if (userQuery.toLowerCase().includes("order")) {
+                sendQuery("Order Status", userQuery);
+            } else if (userQuery.toLowerCase().includes("product")) {
+                sendQuery("Product Info", userQuery);
+            } else if (userQuery.toLowerCase().includes("refund")) {
+                sendQuery("Refund", userQuery);
+            } else if (userQuery.toLowerCase().includes("bye")) {
+                sendQuery("Bye", userQuery);
+            } else if (userQuery.toLowerCase().includes("price")) {
+                sendQuery("Price", userQuery);
+            } else {
+                sendQuery("Unknown Intent", userQuery);
+            }
+        }
+
+        // Optional: Enable pressing Enter to send messages
+        document.getElementById("userQuery").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                sendUserMessage();
+            }
+        });
+    </script>
+
+</body>
+</html>
